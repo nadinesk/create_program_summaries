@@ -1,0 +1,302 @@
+---
+title: 
+output: 
+  word_document:
+    reference_docx: styles_ref.docx
+---
+
+```{r, echo=FALSE}
+suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
+suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+suppressWarnings(suppressPackageStartupMessages(library(leaflet)))
+suppressWarnings(suppressPackageStartupMessages(library(DT)))
+suppressWarnings(suppressPackageStartupMessages(library(stringr)))
+
+knitr::opts_chunk$set(warning=FALSE)
+
+library(knitr)
+library(markdown)
+library(rmarkdown)
+```
+
+```{r, include=FALSE}
+
+dbns <- cte_data2[rownames(cte_data2)==dbn,]
+school_name <- dbns$Location.Name
+open_date <- dbns$Open.Date
+address <- dbns$Primary.Address
+city <- dbns$City
+nta <- dbns$NTA_Name
+district <- dbns$Geographical.District.Code
+
+principal_name <- dbns$Principal.Name
+principal_title <- dbns$Principal.Title
+principal_contact <- dbns$Principal.Phone.Number
+
+bfsc_dir_name <- dbns$BFSC.Director.Name
+bfsc_dir_title <- dbns$BFSC.Director.Title
+bfsc_dir_phone <- dbns$BFSC.Director.Phone
+
+grades <- dbns$Grades.Final
+
+grad_rate_4yr <- dbns$Metric.Value...Graduation.Rate..4.year * 100.00
+grad_rate_6yr <- dbns$Metric.Value...Graduation.Rate..6.Year * 100.00
+
+cri_4yr <- dbns$Metric.Value...Four.Year.College.Readiness.Index * 100.00
+cri_6yr <- dbns$Metric.Value...College.Readiness.Index..6.Year * 100.00
+
+enrollment_1516 <- dbns$X2015.16
+enrollment_1617 <- dbns$X2016.17
+
+cte_enr_1516 <- dbns$X2015_16_CTE_Enr
+cte_enr_1617 <- dbns$X2016_17_CTE_Enr
+
+perc_cte_enr_1516 <- round((cte_enr_1516 / enrollment_1516),2) * 100.00
+perc_cte_enr_1617 <- round((cte_enr_1617 / enrollment_1617),2) * 100.00
+
+cte_credits_1516 <- dbns$CTE_credits_201516
+cte_credits_1617 <- dbns$CTE_credits_201617
+
+
+enr_trend <- dbns %>%
+                select(X2012.13, X2013.14, X2014.15, X2015.16, X2016.17)
+
+
+enr_trend_melt <- melt(enr_trend) %>%
+                    rename(c("variable"  = "Year")) %>%
+                    rename(c("value" = "enrollment"))
+
+
+enr_trend_melt$Year <-gsub('X','',enr_trend_melt$Year)
+
+enr_trend_melt
+
+
+
+enr_graph <- ggplot(data=enr_trend_melt, aes(x=Year, y=enrollment, group=1)) + 
+                  geom_line(colour = "blue") +
+                  geom_point(colour="green", size=3, shape=21, fill="white") + 
+                  theme(axis.text.x=element_text(angle=60, hjust=1)) + ggtitle("Enrollment Trend") + 
+                  theme(plot.title = element_text(colour="brown", size=10))
+
+```
+# `r school_name`
+DBN: `r dbn`
+
+Open Date: `r open_date`
+
+data as of `r Sys.Date()`
+
+<br>
+
+## Location and Contacts
+
+### Location
+  
+`r address`, `r city`, `r nta`, District `r district`
+    
+
+<br>
+     
+### Principal
+
+`r principal_title`: `r principal_name` 
+    
+Contact: `r principal_contact` 
+
+<br>
+    
+### Borough Field Support Center
+
+`r bfsc_dir_title`: `r bfsc_dir_name` 
+    
+Contact: `r bfsc_dir_phone` 
+
+<br>
+    
+### Grades 
+`r grades`
+    
+<br>
+
+## Stats
+
+### 2015-16 Graduation and College Readiness
+
+4-Year Graduation Rate: `r grad_rate_4yr`%
+
+6-Year Graduation Rate: `r grad_rate_6yr`%
+
+
+4-Year College Readiness Index: `r cri_4yr`%
+
+6-Year College Readiness Index: `r cri_6yr`%
+
+<br> 
+
+### Enrollment: 
+
+* 2015-16: `r enrollment_1516` students
+
+* 2016-17: `r enrollment_1617` students
+
+<br> 
+
+```{r, fig.width=2.5, fig.height=2.5, echo=FALSE}
+
+enr_graph
+
+```
+
+
+##### Page Break 
+
+CTE Enrolled
+
+* 2015-16: `r cte_enr_1516`, `r perc_cte_enr_1516`% of total enrollment
+
+* 2016-17: `r cte_enr_1617`, `r perc_cte_enr_1617`% of total enrollment
+
+<br> 
+
+CTE Credits 
+
+* 2015-16: `r format(cte_credits_1516, digits=2, nsmall=2, big.mark=",")` credits
+
+* 2016-17: `r format(cte_credits_1617, digits=2, nsmall=2, big.mark=",")` credits
+
+
+<br>
+
+
+## CTE Programs
+
+<br>
+
+These are the 2016-17 funded CTE Programs: 
+
+<br> 
+
+```{r, include=FALSE}
+
+cte_pgms <- read.csv("D:/cte_one_pager/pgms_funded.csv") %>%
+              filter(DBN == dbn) %>%
+              select(Program.Name, Program.CIP.Code)
+              
+```
+
+
+```{r, echo=FALSE}
+
+kable(cte_pgms)
+
+```
+
+<br>
+
+## School Program Inventory
+
+<br> 
+
+This school program inventory list is as of May 2017. 
+
+<br> 
+
+```{r, include=FALSE}
+
+other_pgms <- read.csv("D:/cte_one_pager/opsr_ml.csv") %>%
+              filter(DBN == dbn) %>%
+              select(School.Year, Program.Name)
+              
+```
+
+
+```{r, echo=FALSE}
+
+kable(other_pgms)
+
+```
+
+```{r, include=FALSE}
+
+ps_teacher_sal <- dbns$Per.Student.Spending.on.Classroom.Teacher.Salaries
+ps_pd <- dbns$Per.Student.Spending.on.Professional.Development
+ps_summafschool <- dbns$Per.Student.Spending.on.Summer.and.After.School.Programs
+t_total <- dbns$Total.Dollars.Spent.at.this.School
+t_ps_cost <- dbns$Total.Per.Student.Cost.in.this.School
+t_ps_gen_ed <- dbns$Total.Per.Student.Spending.for.General.Ed.Students
+t_ps_spec_ed <- dbns$Total.Per.Student.Spending.for.Special.Ed.Students
+
+cost_entire_system <- read.csv("D:/cte_one_pager/cost_entire_system.csv")
+
+es_ps_teacher_sal <- cost_entire_system$Per.Student.Spending.on.Classroom.Teacher.Salaries
+es_ps_pd <- cost_entire_system$Per.Student.Spending.on.Professional.Development
+es_ps_summafschool <- cost_entire_system$Per.Student.Spending.on.Summer.and.After.School.Programs
+es_t_total <- cost_entire_system$Total.Per.Student.Cost.For.Entire.System
+es_t_ps_gen_ed <- cost_entire_system$Total.Per.Student.Spending.for.General.Ed.Students
+es_t_ps_spec_ed <- cost_entire_system$Total.Per.Student.Spending.for.Special.Ed.Students
+
+
+
+
+fsf_fy16 <- dbns$FY16.Projected.Formula
+fsf_fy17 <- dbns$FY17.Projected.Formula
+fsf_fy18 <- dbns$FY18.Projected.Formula
+
+cte_fsf <- read.csv("D:/cte_one_pager/portfolio_cte_combined.csv", stringsAsFactors = FALSE) %>%
+              filter(DBN == dbn)  %>%
+              filter(Fair.Student.Funding.Formula.Details1.Fair.Student.Funding.Weighted.Register.Formula.Fair.Student.Funding.Weighted.Register.Formula == "Tier 1 Programs" | 
+                    Fair.Student.Funding.Formula.Details1.Fair.Student.Funding.Weighted.Register.Formula.Fair.Student.Funding.Weighted.Register.Formula == "Tier 2 Programs"  | 
+                    Fair.Student.Funding.Formula.Details1.Fair.Student.Funding.Weighted.Register.Formula.Fair.Student.Funding.Weighted.Register.Formula == "Tier 3 Programs" | 
+                    Fair.Student.Funding.Formula.Details1.Fair.Student.Funding.Weighted.Register.Formula.Fair.Student.Funding.Weighted.Register.Formula == "Tier 4 Programs") %>%
+              select(Fair.Student.Funding.Formula.Details1.Fair.Student.Funding.Weighted.Register.Formula.Fair.Student.Funding.Weighted.Register.Formula, FY18Projected_Formula_3, DBN) 
+
+names(cte_fsf)
+
+cte_fsf_amt_fy18 <- sum(cte_fsf$FY18Projected_Formula_3)
+
+
+cte_fsf$Fair.Student.Funding.Formula.Details1.Fair.Student.Funding.Weighted.Register.Formula.Fair.Student.Funding.Weighted.Register.Formula
+
+```
+
+
+##### Page Break
+
+## Funding
+
+
+| 2015-16 Category                                          | `r dbn`            |Entire System         |  
+|---------------------------------------------------------  |:------------------:|:--------------------:|
+| Per Student Spending on Classroom Teacher Salaries        | `r ps_teacher_sal` |`r es_ps_teacher_sal` |
+| Per Student Spending on Professional Development          | `r ps_pd`          |`r es_ps_pd`          |
+| Per Student Spending on Summer and After School Programs  | `r ps_summafschool`|`r es_ps_summafschool`|
+| Total Dollars Spent at this School                        | `r t_total`        | NA                   |
+| Total Per Student Cost in this School                     | `r t_ps_cost`      |`r es_t_total`        |
+| Total Per Student Spending for Special Ed Students        | `r t_ps_spec_ed`   |`r es_t_ps_spec_ed`   |
+| Total Per Student Spending for General Ed Students        | `r t_ps_gen_ed`    |`r es_t_ps_gen_ed`    |
+
+<br> 
+
+## Fair Student Funding
+
+<br>
+
+FY18 Projected CTE Amount: $`r format(cte_fsf_amt_fy18, digits=0, nsmall=2, big.mark=",")`
+
+<br>
+
+This table shows the total FSF amount. 
+
+<br> 
+
+| Category/Year                                             |      Amount   |  
+|---------------------------------------------------------  |:-------------:|
+| FY16 Projected-Formula                                    | `r fsf_fy16`  |
+| FY17 Projected-Formula                                    | `r fsf_fy17`  |
+| FY18 Projected-Formula                                    | `r fsf_fy18`  |
+
+
+
+
+
